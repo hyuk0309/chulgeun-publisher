@@ -1,0 +1,98 @@
+name: 인스타 게시
+
+on:
+  schedule:
+    # GitHub cron 은 UTC 기준. 월·수·금 07:17 KST = 일·화·목 22:17 UTC
+    - cron: "17 22 * * 0,2,4"
+    # 백업: 월·수·금 09:17 KST. 앞 실행이 지연·누락·일시 오류일 때만 일을 한다(게시된 항목은 다시 안 올림)
+    - cron: "17 0 * * 1,3,5"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "run = 게시, check = 토큰·페이지·인스타 연결만 확인(게시 안 함)"
+        type: choice
+        options: [run, check]
+        default: run
+      dry_run:
+        description: "연습 실행(인스타에 올리지 않고 할 일만 출력)"
+        type: boolean
+        default: true
+      slug:
+        description: "특정 항목만(예: 2026-11-16-ggs-1). 비우면 시각이 지난 항목"
+        type: string
+        required: false
+      ignore_schedule:
+        description: "slug 를 지정했을 때 예약 시각 전이어도 지금 올리기"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # posted.json 기록 커밋
+  issues: write     # 실패 알림 이슈
+
+concurrency:
+  group: instagram-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 게시(또는 확인)
+        env:
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          GRAPH_API_VERSION: ${{ vars.GRAPH_API_VERSION }}
+          PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL }}
+          EVENT: ${{ github.event_name }}
+          IN_ACTION: ${{ inputs.action }}
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+          IN_SLUG: ${{ inputs.slug }}
+          IN_IGNORE: ${{ inputs.ignore_schedule }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PAGES_BASE_URL:-}" ]; then
+            OWNER="$(echo "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')"
+            export PAGES_BASE_URL="https://${OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+          fi
+          echo "이미지 주소: $PAGES_BASE_URL/queue/..."
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$IN_ACTION" = "check" ]; then
+            python3 scripts/publish.py check
+            exit 0
+          fi
+          ARGS=(run)
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ "$IN_DRY_RUN" = "true" ]; then ARGS+=(--dry-run --check-urls); fi
+            if [ -n "$IN_SLUG" ]; then ARGS+=(--slug "$IN_SLUG"); fi
+            if [ "$IN_IGNORE" = "true" ]; then ARGS+=(--ignore-schedule); fi
+          fi
+          python3 scripts/publish.py "${ARGS[@]}"
+
+      - name: 게시 기록(posted.json) 저장
+        if: always()
+        run: |
+          set -euo pipefail
+          git add queue/*/posted.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "새 기록 없음"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "게시 기록: $(git diff --cached --name-only | sed 's#queue/##; s#/posted.json##' | tr '\n' ' ')"
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            git pull --rebase
+            sleep $((i * 5))
+          done
+          echo "::error::posted.json 푸시 실패. 다음 실행은 계정의 최근 게시물로 중복을 막습니다."
+          exit 1
+
+      - name: 실패 알림 이슈
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/notify_failure.sh "자동 게시 실패"

@@ -1,0 +1,9 @@
+# 비밀값
+.env
+*.token
+# 로컬 전용
+local/
+__pycache__/
+*.pyc
+.DS_Store
+queue/*/posted.json.tmp

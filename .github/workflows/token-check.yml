@@ -1,0 +1,39 @@
+name: 토큰 점검
+
+# 페이지 토큰은 만료가 없어 갱신하지 않는다(ADR-002). 대신 월요일 게시 전날 한 번
+# 토큰이 아직 유효한지, 페이지-인스타 연결과 게시 권한이 그대로인지 확인하고 문제가 있으면 이슈로 알린다.
+# 게시는 하지 않는다. Secret 쓰기 권한(PAT)이 필요 없다.
+
+on:
+  schedule:
+    # 매주 일요일 03:17 KST = 토요일 18:17 UTC
+    - cron: "17 18 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: instagram-publish   # 게시 중에는 기다렸다가 실행
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 토큰·연결·권한 확인(게시 안 함)
+        env:
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          GRAPH_API_VERSION: ${{ vars.GRAPH_API_VERSION }}
+        run: python3 scripts/publish.py check
+
+      - name: 실패 알림 이슈
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/notify_failure.sh "토큰 점검 실패"
