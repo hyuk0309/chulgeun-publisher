@@ -247,6 +247,10 @@
 3. 게시가 끝나면 저장소에 `posted.json`(인스타 게시물 링크)이 자동으로 기록됩니다. 한 번 기록된 항목은 다시 올라가지 않습니다.
 4. 실패하면 저장소 **Issues** 탭에 "자동 게시 실패" 또는 "토큰 점검 실패" 이슈가 생기고, GitHub가 운영용 이메일로도 알려 줍니다.
 5. 운영용 Facebook 비밀번호를 바꿨거나, 페이지·인스타 연결을 바꿨다면 9단계를 다시 합니다.
+6. **예약 실행은 대표님 맥이 겁니다**(월·수·금 07:17, 07:47 + 로그인할 때 한 번). 맥은 켜 두고, 재부팅·정전 뒤에는 **로그인까지 해 주세요**(FileVault 때문에 로그인 전에는 돌지 않습니다). 맥이 꺼져 있으면 GitHub 예약 실행(07:17·09:17, 늦어질 수 있음)이 대신합니다.
+   - 설치·재설치: `ops/launchd/install.sh` / 해제: `ops/launchd/install.sh --uninstall`
+   - 로그: `/Users/hyuk/project/.cache/chulgeun-trigger.log` (언제 확인했고, dispatch 했는지, 실행 링크와 결과)
+   - 자세한 내용: [docs/ADR-003-mac-launchd-trigger.md](docs/ADR-003-mac-launchd-trigger.md)
 
 ## 막힐 때(실행 기록에 나오는 말)
 

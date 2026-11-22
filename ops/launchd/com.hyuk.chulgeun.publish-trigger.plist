@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 인스타 게시 예약 트리거(ADR-003). 원본: ops/launchd/ 템플릿. 설치: ops/launchd/install.sh
+     __REPO__, __LOG_DIR__ 는 install.sh 가 채운다. 시각은 맥 로컬 시간대(Asia/Seoul) 기준.
+     월(1)·수(3)·금(5) 07:17, 07:47 + 로그인·설치 시 1회. 할 일이 있을 때만 dispatch 한다. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hyuk.chulgeun.publish-trigger</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__REPO__/scripts/mac_trigger.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TRIGGER_LOG_DIR</key>
+        <string>__LOG_DIR__</string>
+    </dict>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>17</integer></dict>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>47</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>17</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>47</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>17</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>47</integer></dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/chulgeun-trigger.launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/chulgeun-trigger.launchd.log</string>
+</dict>
+</plist>

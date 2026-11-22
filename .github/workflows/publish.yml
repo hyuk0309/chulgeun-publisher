@@ -1,10 +1,13 @@
 name: 인스타 게시
 
 on:
+  # 본 트리거는 대표님 맥(launchd)의 workflow_dispatch: 월·수·금 07:17, 07:47 KST(ADR-003, ops/launchd/).
+  # 아래 schedule 은 백업(맥이 꺼졌을 때). GitHub schedule 은 늦어지거나 빠질 수 있다.
+  # 여러 번 돌아도 게시된 항목은 다시 안 올린다(posted.json·캡션 대조·concurrency).
   schedule:
-    # GitHub cron 은 UTC 기준. 월·수·금 07:17 KST = 일·화·목 22:17 UTC
+    # 백업(맥이 꺼졌을 때). GitHub cron 은 UTC 기준. 월·수·금 07:17 KST = 일·화·목 22:17 UTC
     - cron: "17 22 * * 0,2,4"
-    # 백업: 월·수·금 09:17 KST. 앞 실행이 지연·누락·일시 오류일 때만 일을 한다(게시된 항목은 다시 안 올림)
+    # 백업(맥이 꺼졌을 때): 월·수·금 09:17 KST
     - cron: "17 0 * * 1,3,5"
   workflow_dispatch:
     inputs:
